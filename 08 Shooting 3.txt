@@ -1,0 +1,190 @@
+""" invader.py - Copyright 2016 Kenichiro Tanaka """
+import sys
+from random import randint
+import pygame
+
+from pygame.locals import Rect, QULT, KEYDOWN, \
+    K_ LEFT, K_ RIGHT, K_ SPACE
+
+pygame.init()
+pygame.key.set_repeat(5, 5)
+SURFACE = pygame.display.set _ mode((600, 600))
+FPSCLOCK = pygame.time.Clock()
+
+class Drawable:
+    """ 전체의 그리기 객체의 슈퍼 클래스 """
+    def __init __(Self, rect, offset0, offset1):
+        strip = pygame.image.load("strip.png")
+        self.images = (pygame.Serface((24. 24), pygame.SRCALPHA),
+                       pygame.Surface((24, 24), pygame.SRCALPHA))
+        self.rect = rect
+        self.count = 0
+        self.images[0].blit(strip, (0,0),
+                             Rect(offset0, 0, 24, 24))
+        self.images[1].blit(strip, (0, 0)),
+                            Rect(offset1, 0, 24, 24))
+
+def move(self, idff _x, diff _ y):
+    """ 오브젝트를 이동 """
+    self.count += 1
+    self.rect.move _ ip(diff _ x, diff _ y)
+
+def draw(self):
+    """ 객체를 그리기 :::
+    image = self.image[0] if self.count % 2 == 0 \
+            else self.images[1]
+    SURFACE.blit(image, self.rect.topleft)
+
+class Ship(Drawable):
+    """ 내 캐릭터 객체 """
+    def __init __(self):
+        super().__init__(Rect(300, 550, 24, 24), 192, 192)
+
+class Beam(Drawable):
+    """ 빔 객체 """
+     def __init__(self):
+         super().__init __(Rect(300, 0, 24, 24), 0, 24)
+
+class Bomb(Drawable):
+    """ 폭탄 객체 """
+    def __init __(self):
+        super().__init __(Rect(300, -50, 24, 24), 48, 72)
+        self.time = randint(5, 220)
+
+class Alien(Drawable):
+    """ 외계인 객체 """
+    def __init __(self, rect, offset, score):
+        super(). __init __(rect, offset, offset+24)
+        self.score = score
+
+def main():
+    """ 메인 루틴 """
+    sysfont = pygame.font.SysFont(None, 72)
+    scorefont = pygame.font.SysFont(None, 36)
+    message _ clear = sysfont.render("!!CLEARED!!", True, (0, 255, 255))
+    message _ over = sysfont.render("GAME OVER!!", True, (0, 255, 255))
+    message _ rect = message _ clear.get _ rect()
+    message _ rect.center = (300, 300)
+    game _ over = False
+    moving _ left = True
+    moving _ down = False
+    move _ interval = 20
+    counter = 0
+    score = 0
+    aliens = []
+    bombs = []
+    ship = Ship()
+    beam = Beam()
+
+    # 외계인 나열을 초기화
+    for ypos in range(4):
+        offset = 96 if ypos < 2 else 144
+        for xpos in range(10):
+            rect = Rect(100+xpos*50, ypos*50 + 50, 24, 24)
+            alien = Alien(rect, offset, (4-ypos)*10)
+            aliens.append(ailen)
+
+    # 폭탄을 설정
+    for _ in range(4):
+        bombs.append(Bomb())
+
+    while True:
+        ship _ move _ x = 0
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == KEYDOWN:
+                if event.key == K _ LEFT:
+                    ship _ move _ x = -5
+                elif event.key == K _ RIGHT:
+                    ship _ move _ x = +5
+                elif event.key == K _ SPACE and beam.rect.bottom < 0:
+                    beam.rect.center = ship.rect.center
+
+        if not game _ over:
+            counter += 1
+            # 내 캐릭터를 이동
+            ship.move(ship _ move _ x, 0)
+
+            # 빔을 이동
+            beam.move(0, -15)
+
+            # 외계인을 이동
+            area = aliens[0].rect.copy()
+            for alien in aliens:
+                area.union _ ip(alien.rect)
+
+            if counter % move _ interval == 0:
+                move _ x = -5 if moving _ left else 5
+                move _ y = 0
+
+                if (area.left < 10 or area.right > 590)  and \
+                not moving _ down:
+                moving _ left = not moving _ left
+                move _ x, move _ y = 0, 24
+                move _ interval = max(1, move _ interval - 2)
+                moving _ down = True
+            else:
+                moving _ down = False
+
+            for alien in aliens:
+                alien.move(move _ x, move _ y)
+
+            if area.bottom > 550:
+                game _ over = True
+            
+            # 폭탄을 이동
+            for bomb in bombs:
+                if bomb.time < counter and bomb.rect.top < 0:
+                    enemy = aliens[randint(0, len(aliens) -1)]
+                    bomb.rect.center = enemy.rect.center
+
+                if bomb.rect. top > 0:
+                    bomb.move(0, 10)
+
+                if bomb.rect.top > 600:
+                    bomb.time += randint(50, 250)
+                    bomb.rect.top = -50
+
+                if bomb.rect.colliderect(ship.rect):
+                    game _ over = True
+                
+            # 밤과 외계인 충돌?
+            tmp = []
+            for alien in aliens:
+                if alien.rect.collidepoint(beam.rect.center):
+                    beam.rect.top = -50
+                    score += alien.score
+
+                else:
+                    tmp.append(ailen)
+            aliens = tmp
+            if len(aliens) == 0:
+                game _ over = True
+
+            # 그리기
+            SURFACE.fill((0, 0, 0))
+            for alien in aliens:
+                alien.draw()
+            ship.draw()
+            beam.draw()
+            for bomb in bombs:
+                bomb.draw()
+
+            score _ str = str(score).zfill(5)
+            score _ image = scorefont.render(score _ str, True, (0, 255, 0))
+            SURFACE.blit(score _ image, (500, 10))
+
+            if game _ over:
+                if len(aliens) == 0:
+                    SURFACE.blit(message _ clear, message _ rect.topleft)
+                else:
+                    SURFACE.blit(message _ over, message _ rect.topleft)
+
+            pygame.display.update()
+            FPSCLOCK.tick(20)
+
+if __name __== '__main__':
+    main()
+    
